@@ -47,8 +47,9 @@ func NewNode() *Node {
 }
 
 func NewContact(ip string, port int) *Contact {
+	idString := fmt.Sprintf("%s:%s", ip, port)
 	return &Contact{
-		ContactID: util.GenerateRandomID(),
+		ContactID: util.GenerateID(idString),
 		IP:        ip,
 		Port:      port,
 	}
@@ -117,6 +118,7 @@ func (k *KBucket) Update(node *Node, contactIndex int, c *Contact) {
 	if bytes.Equal(incumbentContact.ContactID, c.ContactID) {
 		node.Contacts = append(node.Contacts[:contactIndex], node.Contacts[contactIndex+1:]...)
 		node.Contacts = append(node.Contacts, c)
+		fmt.Println("--------------------------------------------------")
 		fmt.Println(fmt.Sprintf("Updated Node with IP: %s", c.IP))
 	}
 
@@ -151,13 +153,34 @@ func (k *KBucket) split(node *Node, bitIndex int) {
 	return
 }
 
+func (k *KBucket) FindClosest(contact *Contact, numberOfNodes int) []*Contact {
+	bitIndex := 0
+	nodes := []*Node{k.Root}
+	contacts := []*Contact{}
+
+	for len(nodes) > 0 && len(contacts) <= numberOfNodes {
+		node := nodes[0]
+		nodes = nodes[1:]
+
+		if !node.Leaf {
+			bitIndex++
+			selectedNode := determineNode(node, contact.ContactID, bitIndex)
+			nodes = append(nodes, selectedNode)
+		} else {
+			contacts = append(contacts, node.Contacts...)
+		}
+	}
+
+	return contacts
+}
+
 func determineNode(node *Node, contactID []byte, bitIndex int) *Node {
 	bytesDescribedByBitIndex := bitIndex / 8
 	bitIndexWithinTheByte := bitIndex % 8
 
 	byteUnderConsideration := contactID[bytesDescribedByBitIndex]
 	bitSequenceWithNthBitSet := math.Pow(2, 7-float64(bitIndexWithinTheByte))
-	if (int64(byteUnderConsideration) & int64(bitSequenceWithNthBitSet)) != 0 {
+	if (int64(byteUnderConsideration) & int64(bitSequenceWithNthBitSet)) == 0 {
 		return node.Left
 	} else {
 		return node.Right

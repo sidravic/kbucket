@@ -11,3 +11,9 @@ func GenerateRandomID() []byte {
 	s.Write([]byte(time))
 	return s.Sum(nil)
 }
+
+func GenerateID(idString string) []byte {
+	s := sha1.New()
+	s.Write([]byte(idString))
+	return s.Sum(nil)
+}
