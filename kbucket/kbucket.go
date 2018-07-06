@@ -1,6 +1,7 @@
 package kbucket
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"fmt"
 	"math"
@@ -84,12 +85,46 @@ func (k *KBucket) Add(c *Contact) {
 		node = determineNode(node, c.ContactID, bitIndex)
 	}
 
+	contactIndexInNode := k.ContactExists(node, c)
+	if contactIndexInNode != -1 {
+		/*
+			Call update
+		*/
+		k.Update(node, contactIndexInNode, c)
+	}
+
 	if len(node.Contacts) < k.NumberOfNodePerBucket {
 		node.Contacts = append(node.Contacts, c)
 	} else {
 		k.split(node, bitIndex)
+		fmt.Println("0---------------------------------------")
+		fmt.Println(fmt.Sprintf("Node split at %s", c.IP))
 		k.Add(c)
 	}
+}
+
+func (k *KBucket) ContactExists(node *Node, contact *Contact) (indexOfContact int) {
+	indexOfContact = -1
+
+	for i := 0; i < len(node.Contacts); i++ {
+		if bytes.Equal(node.Contacts[i].ContactID, contact.ContactID) {
+			indexOfContact = i
+			return
+		}
+	}
+	return
+}
+
+func (k *KBucket) Update(node *Node, contactIndex int, c *Contact) {
+	incumbentContact := node.Contacts[contactIndex]
+
+	if bytes.Equal(incumbentContact.ContactID, c.ContactID) {
+		node.Contacts = append(node.Contacts[:contactIndex], node.Contacts[contactIndex+1:]...)
+		node.Contacts = append(node.Contacts, c)
+		fmt.Println("0---------------------------------------")
+		fmt.Println("Updated Node with IP", c.IP)
+	}
+
 }
 
 func (k *KBucket) split(node *Node, bitIndex int) {
@@ -127,7 +162,7 @@ func determineNode(node *Node, contactID []byte, bitIndex int) *Node {
 
 	byteUnderConsideration := contactID[bytesDescribedByBitIndex]
 	bitSequenceWithNthBitSet := math.Pow(2, 7-float64(bitIndexWithinTheByte))
-	if (int64(byteUnderConsideration) & int64(bitSequenceWithNthBitSet)) == 0 {
+	if (int64(byteUnderConsideration) & int64(bitSequenceWithNthBitSet)) != 0 {
 		return node.Left
 	} else {
 		return node.Right
