@@ -87,9 +87,6 @@ func (k *KBucket) Add(c *Contact) {
 
 	contactIndexInNode := k.ContactExists(node, c)
 	if contactIndexInNode != -1 {
-		/*
-			Call update
-		*/
 		k.Update(node, contactIndexInNode, c)
 	}
 
@@ -97,7 +94,6 @@ func (k *KBucket) Add(c *Contact) {
 		node.Contacts = append(node.Contacts, c)
 	} else {
 		k.split(node, bitIndex)
-		fmt.Println("0---------------------------------------")
 		fmt.Println(fmt.Sprintf("Node split at %s", c.IP))
 		k.Add(c)
 	}
@@ -121,8 +117,7 @@ func (k *KBucket) Update(node *Node, contactIndex int, c *Contact) {
 	if bytes.Equal(incumbentContact.ContactID, c.ContactID) {
 		node.Contacts = append(node.Contacts[:contactIndex], node.Contacts[contactIndex+1:]...)
 		node.Contacts = append(node.Contacts, c)
-		fmt.Println("0---------------------------------------")
-		fmt.Println("Updated Node with IP", c.IP)
+		fmt.Println(fmt.Sprintf("Updated Node with IP: %s", c.IP))
 	}
 
 }
